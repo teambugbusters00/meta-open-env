@@ -1,4 +1,4 @@
-url : https://huggingface.co/spaces/jarvisemitra/META-OPEN-ENV
+
 # Support Ticket Triage Submission
 
 This repository is intentionally structured as a single deployable environment inside `support-ticket-env/`.
