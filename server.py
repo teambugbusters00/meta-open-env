@@ -7,13 +7,14 @@ import os
 import json
 import uvicorn
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from typing import Any, Optional
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional
 
-from env import SupportTicketEnv, SupportAction
+from env import SupportTicketEnv, SupportAction, SupportObservation, SupportState
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -61,6 +62,14 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class MetadataResponse(BaseModel):
+    name: str
+    description: str
+    version: str
+    mode: str
+    tasks: list[dict[str, str]]
+
+
 # ============================================================================
 # API Endpoints
 # ============================================================================
@@ -72,6 +81,81 @@ async def health_check():
         status="healthy",
         environment="support-ticket-triage",
         version="1.0.0"
+    )
+
+
+@app.get("/metadata", response_model=MetadataResponse)
+async def get_metadata():
+    """Return OpenEnv runtime metadata required by validators."""
+    return MetadataResponse(
+        name="support-ticket-triage",
+        description="A real-world customer support ticket management environment for AI agents",
+        version="1.0.0",
+        mode="simulation",
+        tasks=[
+            {
+                "id": "categorize_ticket",
+                "name": "Ticket Categorization (Easy)",
+                "description": "Categorize incoming support tickets into correct department and priority",
+            },
+            {
+                "id": "prioritize_and_route",
+                "name": "Prioritize and Route (Medium)",
+                "description": "Handle multiple tickets by prioritizing and routing to appropriate teams",
+            },
+            {
+                "id": "full_workflow",
+                "name": "Full Support Workflow (Hard)",
+                "description": "Complete end-to-end support workflow with responses and escalations",
+            },
+        ],
+    )
+
+
+@app.get("/schema")
+async def get_schema():
+    """Return action/observation/state schemas required by validators."""
+    return {
+        "action": SupportAction.model_json_schema(),
+        "observation": SupportObservation.model_json_schema(),
+        "state": SupportState.model_json_schema(),
+    }
+
+
+@app.post("/mcp")
+async def mcp_endpoint(request: Request):
+    """Minimal JSON-RPC compatible endpoint for validator reachability checks."""
+    payload: dict[str, Any] = {}
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    request_id = payload.get("id")
+    method = payload.get("method", "unknown")
+
+    if method == "initialize":
+        result: dict[str, Any] = {
+            "protocolVersion": "2024-11-05",
+            "serverInfo": {
+                "name": "support-ticket-triage",
+                "version": "1.0.0",
+            },
+            "capabilities": {},
+        }
+    else:
+        result = {
+            "status": "ok",
+            "message": "MCP endpoint is reachable",
+        }
+
+    return JSONResponse(
+        content={
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": result,
+        },
+        media_type="application/json",
     )
 
 
