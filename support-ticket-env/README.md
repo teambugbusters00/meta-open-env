@@ -146,7 +146,7 @@ pip install -r requirements.txt
 
 3. **Run the server**:
 ```bash
-python server.py
+python -m server.app
 ```
 
 The server will start on `http://localhost:8000`
@@ -236,7 +236,8 @@ Where:
 ```
 support-ticket-env/
 ├── env.py                 # Main environment implementation
-├── server.py              # FastAPI server
+├── server.py              # FastAPI server implementation
+├── server/app.py          # Multi-mode deployment entrypoint
 ├── openenv.yaml           # OpenEnv configuration
 ├── Dockerfile             # Docker configuration
 ├── requirements.txt       # Python dependencies

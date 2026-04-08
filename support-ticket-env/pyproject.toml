@@ -7,7 +7,7 @@ name = "support-ticket-triage"
 version = "1.0.0"
 description = "A real-world customer support ticket management environment for AI agents"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "openenv-core>=0.2.0",
     "fastapi>=0.104.0",
@@ -19,6 +19,7 @@ dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
+    "gradio>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +27,9 @@ dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
 ]
+
+[project.scripts]
+server = "server.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
