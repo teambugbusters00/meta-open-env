@@ -162,7 +162,7 @@ curl -X POST http://localhost:8000/reset \
   -d '{"task_id": "categorize_ticket"}'
 
 # Run inference
-python ../inference.py
+python inference.py
 ```
 
 ### Docker Deployment
@@ -236,14 +236,13 @@ Where:
 ```
 support-ticket-env/
 ├── env.py                 # Main environment implementation
+├── inference.py           # Baseline inference script
 ├── server.py              # FastAPI server implementation
 ├── server/app.py          # Multi-mode deployment entrypoint
 ├── openenv.yaml           # OpenEnv configuration
 ├── Dockerfile             # Docker configuration
 ├── requirements.txt       # Python dependencies
 └── README.md              # This file
-
-inference.py               # Baseline inference script (in root)
 ```
 
 ## 🧪 Testing
