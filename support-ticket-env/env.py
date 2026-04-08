@@ -157,6 +157,73 @@ TICKET_TEMPLATES = {
 }
 
 
+TASK_CONFIGS = {
+    "categorize_ticket": {
+        "name": "Ticket Categorization (Easy)",
+        "description": "Categorize incoming support tickets correctly.",
+        "difficulty": "easy",
+        "max_steps": 5,
+        "ticket_count": 3,
+        "success_threshold": 0.7,
+        "graders": [
+            {
+                "id": "categorization_accuracy",
+                "name": "Categorization Accuracy",
+                "description": "Scores whether the selected category and priority match the expected labels for each ticket.",
+            }
+        ],
+    },
+    "prioritize_and_route": {
+        "name": "Prioritize and Route (Medium)",
+        "description": "Categorize and prioritize multiple tickets.",
+        "difficulty": "medium",
+        "max_steps": 10,
+        "ticket_count": 5,
+        "success_threshold": 0.6,
+        "graders": [
+            {
+                "id": "queue_prioritization",
+                "name": "Queue Prioritization",
+                "description": "Evaluates whether tickets are assigned appropriate priority levels based on urgency and routed through the workflow correctly.",
+            }
+        ],
+    },
+    "full_workflow": {
+        "name": "Full Support Workflow (Hard)",
+        "description": "Complete end-to-end support workflow.",
+        "difficulty": "hard",
+        "max_steps": 15,
+        "ticket_count": 4,
+        "success_threshold": 0.5,
+        "graders": [
+            {
+                "id": "workflow_resolution_quality",
+                "name": "Workflow Resolution Quality",
+                "description": "Grades the full workflow including categorization, prioritization, response quality, escalation judgment, and ticket completion.",
+            }
+        ],
+    },
+}
+
+
+def get_task_metadata() -> List[Dict[str, Any]]:
+    """Return task metadata, including explicit grader declarations for validators."""
+    tasks: List[Dict[str, Any]] = []
+    for task_id, config in TASK_CONFIGS.items():
+        tasks.append(
+            {
+                "id": task_id,
+                "name": config["name"],
+                "description": config["description"],
+                "difficulty": config["difficulty"],
+                "max_steps": config["max_steps"],
+                "success_threshold": config["success_threshold"],
+                "graders": config["graders"],
+            }
+        )
+    return tasks
+
+
 # ============================================================================
 # Grading Logic
 # ============================================================================
@@ -281,25 +348,7 @@ class SupportTicketEnv:
     async def reset(self, task_id: str = "categorize_ticket") -> dict:
         """Reset environment to initial state"""
         
-        task_configs = {
-            "categorize_ticket": {
-                "max_steps": 5,
-                "ticket_count": 3,
-                "description": "Categorize incoming support tickets correctly."
-            },
-            "prioritize_and_route": {
-                "max_steps": 10,
-                "ticket_count": 5,
-                "description": "Categorize and prioritize multiple tickets."
-            },
-            "full_workflow": {
-                "max_steps": 15,
-                "ticket_count": 4,
-                "description": "Complete end-to-end support workflow."
-            }
-        }
-        
-        config = task_configs.get(task_id, task_configs["categorize_ticket"])
+        config = TASK_CONFIGS.get(task_id, TASK_CONFIGS["categorize_ticket"])
         tickets = self._generate_tickets(config["ticket_count"], task_id)
         
         self._state = SupportState(

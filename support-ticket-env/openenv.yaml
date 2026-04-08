@@ -19,6 +19,10 @@ tasks:
     difficulty: easy
     max_steps: 5
     success_threshold: 0.7
+    graders:
+      - id: categorization_accuracy
+        name: Categorization Accuracy
+        description: Scores whether the ticket category and priority match the expected labels.
 
   - id: prioritize_and_route
     name: Prioritize and Route (Medium)
@@ -28,6 +32,10 @@ tasks:
     difficulty: medium
     max_steps: 10
     success_threshold: 0.6
+    graders:
+      - id: queue_prioritization
+        name: Queue Prioritization
+        description: Evaluates whether tickets are prioritized correctly based on urgency and routed through the workflow appropriately.
 
   - id: full_workflow
     name: Full Support Workflow (Hard)
@@ -37,6 +45,10 @@ tasks:
     difficulty: hard
     max_steps: 15
     success_threshold: 0.5
+    graders:
+      - id: workflow_resolution_quality
+        name: Workflow Resolution Quality
+        description: Grades the end-to-end workflow, including categorization, prioritization, response quality, escalation, and completion.
 
 environment:
   type: text

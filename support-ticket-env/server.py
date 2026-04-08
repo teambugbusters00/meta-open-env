@@ -14,7 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from env import SupportTicketEnv, SupportAction, SupportObservation, SupportState
+from env import (
+    SupportTicketEnv,
+    SupportAction,
+    SupportObservation,
+    SupportState,
+    get_task_metadata,
+)
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -62,12 +68,28 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class GraderMetadata(BaseModel):
+    id: str
+    name: str
+    description: str
+
+
+class TaskMetadata(BaseModel):
+    id: str
+    name: str
+    description: str
+    difficulty: Optional[str] = None
+    max_steps: Optional[int] = None
+    success_threshold: Optional[float] = None
+    graders: list[GraderMetadata] = []
+
+
 class MetadataResponse(BaseModel):
     name: str
     description: str
     version: str
     mode: str
-    tasks: list[dict[str, str]]
+    tasks: list[TaskMetadata]
 
 
 # ============================================================================
@@ -92,23 +114,7 @@ async def get_metadata():
         description="A real-world customer support ticket management environment for AI agents",
         version="1.0.0",
         mode="simulation",
-        tasks=[
-            {
-                "id": "categorize_ticket",
-                "name": "Ticket Categorization (Easy)",
-                "description": "Categorize incoming support tickets into correct department and priority",
-            },
-            {
-                "id": "prioritize_and_route",
-                "name": "Prioritize and Route (Medium)",
-                "description": "Handle multiple tickets by prioritizing and routing to appropriate teams",
-            },
-            {
-                "id": "full_workflow",
-                "name": "Full Support Workflow (Hard)",
-                "description": "Complete end-to-end support workflow with responses and escalations",
-            },
-        ],
+        tasks=[TaskMetadata(**task) for task in get_task_metadata()],
     )
 
 
@@ -224,23 +230,7 @@ async def root():
             "step": "POST /step",
             "state": "GET /state"
         },
-        "tasks": [
-            {
-                "id": "categorize_ticket",
-                "name": "Ticket Categorization (Easy)",
-                "description": "Categorize incoming support tickets into correct department and priority"
-            },
-            {
-                "id": "prioritize_and_route",
-                "name": "Prioritize and Route (Medium)",
-                "description": "Handle multiple tickets by prioritizing and routing to appropriate teams"
-            },
-            {
-                "id": "full_workflow",
-                "name": "Full Support Workflow (Hard)",
-                "description": "Complete end-to-end support workflow with responses and escalations"
-            }
-        ]
+        "tasks": get_task_metadata()
     }
 
 
