@@ -146,7 +146,7 @@ pip install -r requirements.txt
 
 3. **Run the server**:
 ```bash
-python server.py
+python -m server.app
 ```
 
 The server will start on `http://localhost:8000`
@@ -162,7 +162,7 @@ curl -X POST http://localhost:8000/reset \
   -d '{"task_id": "categorize_ticket"}'
 
 # Run inference
-python ../inference.py
+python inference.py
 ```
 
 ### Docker Deployment
@@ -236,13 +236,13 @@ Where:
 ```
 support-ticket-env/
 ├── env.py                 # Main environment implementation
-├── server.py              # FastAPI server
+├── inference.py           # Baseline inference script
+├── server.py              # FastAPI server implementation
+├── server/app.py          # Multi-mode deployment entrypoint
 ├── openenv.yaml           # OpenEnv configuration
 ├── Dockerfile             # Docker configuration
 ├── requirements.txt       # Python dependencies
 └── README.md              # This file
-
-inference.py               # Baseline inference script (in root)
 ```
 
 ## 🧪 Testing

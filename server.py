@@ -18,10 +18,10 @@ from env import SupportTicketEnv, SupportAction
 
 class DateTimeEncoder(json.JSONEncoder):
     """Custom JSON encoder that handles datetime objects"""
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        return super().default(obj)
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)
 
 
 # ============================================================================
@@ -164,9 +164,13 @@ async def root():
 # Main Entry Point
 # ============================================================================
 
-if __name__ == "__main__":
+def main():
+    """Run the FastAPI server."""
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
     
     print(f"Starting Support Ticket Triage Environment server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
+
+if __name__ == "__main__":
+    main()
