@@ -19,6 +19,7 @@ tasks:
     difficulty: easy
     max_steps: 5
     success_threshold: 0.7
+    grader: env.TicketGrader:grade_categorization
     graders:
       - id: categorization_accuracy
         name: Categorization Accuracy
@@ -34,6 +35,7 @@ tasks:
     difficulty: medium
     max_steps: 10
     success_threshold: 0.6
+    grader: env.TicketGrader:grade_escalation
     graders:
       - id: queue_prioritization
         name: Queue Prioritization
@@ -49,6 +51,7 @@ tasks:
     difficulty: hard
     max_steps: 15
     success_threshold: 0.5
+    grader: env.TicketGrader:grade_response
     graders:
       - id: workflow_resolution_quality
         name: Workflow Resolution Quality
@@ -69,6 +72,7 @@ tasks:
     difficulty: medium
     max_steps: 8
     success_threshold: 0.65
+    grader: env.TicketGrader:grade_escalation
     graders:
       - id: escalation_precision
         name: Escalation Precision
