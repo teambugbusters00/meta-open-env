@@ -19,9 +19,11 @@ tasks:
     difficulty: easy
     max_steps: 5
     success_threshold: 0.7
-    grader:
-      type: exact_match
-      field: category
+    graders:
+      - id: categorization_accuracy
+        name: Categorization Accuracy
+        description: Scores 0.0-1.0 whether ticket categories and priorities were correctly assigned.
+        type: deterministic
 
   - id: prioritize_and_route
     name: Prioritize and Route (Medium)
@@ -31,9 +33,11 @@ tasks:
     difficulty: medium
     max_steps: 10
     success_threshold: 0.6
-    grader:
-      type: weighted_score
-      field: priority
+    graders:
+      - id: queue_prioritization
+        name: Queue Prioritization
+        description: Evaluates whether tickets were prioritized correctly in the queue.
+        type: deterministic
 
   - id: full_workflow
     name: Full Support Workflow (Hard)
@@ -43,9 +47,11 @@ tasks:
     difficulty: hard
     max_steps: 15
     success_threshold: 0.5
-    grader:
-      type: composite_score
-      field: workflow_quality
+    graders:
+      - id: workflow_resolution_quality
+        name: Workflow Resolution Quality
+        description: Grades the full workflow including categorization, prioritization, responses, and escalation.
+        type: deterministic
 
   - id: escalation_specialist
     name: Escalation Specialist (Medium)
@@ -55,9 +61,12 @@ tasks:
     difficulty: medium
     max_steps: 8
     success_threshold: 0.65
-    grader:
-      type: exact_match
-      field: escalation_target
+    graders:
+      - id: escalation_precision
+        name: Escalation Precision
+        description: Measures accuracy of escalation decisions and appropriateness of team selection.
+        type: deterministic
+
 
 environment:
   type: text

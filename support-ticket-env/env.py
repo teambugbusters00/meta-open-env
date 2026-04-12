@@ -245,8 +245,115 @@ def get_task_metadata() -> List[Dict[str, Any]]:
 
 
 # ============================================================================
+# Grader Registry - Callable graders for validator integration
+# ============================================================================
+
+class GraderRegistry:
+    """Registry of callable graders that can be invoked by validators"""
+    
+    @staticmethod
+    def grade_categorization_accuracy(sample: Dict[str, Any]) -> float:
+        """
+        Grader: Categorization Accuracy
+        Scores 0.0-1.0 whether ticket categories and priorities were correctly assigned.
+        """
+        if "expected_category" not in sample or "agent_category" not in sample:
+            return 0.0
+        
+        grader = TicketGrader()
+        return grader.grade_categorization(
+            sample.get("agent_category"),
+            sample.get("expected_category"),
+            sample.get("agent_priority", PriorityLevel.MEDIUM),
+            sample.get("expected_priority", PriorityLevel.MEDIUM)
+        )
+    
+    @staticmethod
+    def grade_queue_prioritization(sample: Dict[str, Any]) -> float:
+        """
+        Grader: Queue Prioritization
+        Evaluates whether multiple tickets were prioritized correctly relative to each other.
+        """
+        if "priority_scores" not in sample:
+            return 0.0
+        
+        scores = sample.get("priority_scores", [])
+        if not scores:
+            return 0.0
+        
+        # Average of all prioritization decisions
+        avg_score = sum(scores) / len(scores)
+        return max(0.0, min(1.0, avg_score))
+    
+    @staticmethod
+    def grade_workflow_resolution_quality(sample: Dict[str, Any]) -> float:
+        """
+        Grader: Workflow Resolution Quality
+        Grades the full workflow including categorization, prioritization, responses, and escalation.
+        """
+        components = []
+        
+        # Categorization component
+        if "categorization_score" in sample:
+            components.append(sample["categorization_score"] * 0.3)
+        
+        # Response quality component
+        if "response_quality" in sample:
+            components.append(sample["response_quality"] * 0.3)
+        
+        # Escalation correctness component
+        if "escalation_score" in sample:
+            components.append(sample["escalation_score"] * 0.2)
+        
+        # Completion component
+        if "completion_ratio" in sample:
+            components.append(sample["completion_ratio"] * 0.2)
+        
+        if not components:
+            return 0.0
+        
+        return max(0.0, min(1.0, sum(components)))
+    
+    @staticmethod
+    def grade_escalation_precision(sample: Dict[str, Any]) -> float:
+        """
+        Grader: Escalation Precision
+        Measures accuracy of escalation decisions and appropriateness of team selection.
+        """
+        expected_escalation = sample.get("expected_escalation", False)
+        agent_escalation = sample.get("agent_escalated", False)
+        
+        if expected_escalation == agent_escalation:
+            base_score = 0.8
+        else:
+            base_score = 0.2
+        
+        # Bonus for correct team selection when escalated
+        if agent_escalation and expected_escalation:
+            expected_team = sample.get("expected_team", "")
+            agent_team = sample.get("agent_team", "")
+            if expected_team == agent_team:
+                return 1.0
+            else:
+                return base_score + 0.15
+        
+        return base_score
+
+
+# Map grader IDs to callable functions
+GRADER_FUNCTIONS = {
+    "categorization_accuracy": GraderRegistry.grade_categorization_accuracy,
+    "queue_prioritization": GraderRegistry.grade_queue_prioritization,
+    "workflow_resolution_quality": GraderRegistry.grade_workflow_resolution_quality,
+    "escalation_precision": GraderRegistry.grade_escalation_precision,
+    "response_professionalism": lambda sample: min(1.0, sample.get("response_length", 0) / 100.0),
+}
+
+
+# ============================================================================
 # Grading Logic
 # ============================================================================
+
 
 class TicketGrader:
     @staticmethod

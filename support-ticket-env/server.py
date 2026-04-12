@@ -20,6 +20,7 @@ from env import (
     SupportObservation,
     SupportState,
     get_task_metadata,
+    GRADER_FUNCTIONS,
 )
 
 
@@ -90,6 +91,18 @@ class MetadataResponse(BaseModel):
     version: str
     mode: str
     tasks: list[TaskMetadata]
+
+
+class GradeRequest(BaseModel):
+    grader_id: str
+    sample: dict[str, Any]
+
+
+class GradeResponse(BaseModel):
+    grader_id: str
+    score: float
+    status: str = "success"
+    message: str = ""
 
 
 # ============================================================================
@@ -255,6 +268,46 @@ async def get_state():
     if state is None:
         raise HTTPException(status_code=404, detail="Environment not initialized. Call /reset first.")
     return JSONResponse(content=state.model_dump())
+
+
+@app.post("/grade", response_model=GradeResponse)
+async def grade_sample(request: GradeRequest):
+    """
+    Grade a sample using the specified grader.
+    
+    Args:
+        grader_id: ID of the grader to use (e.g., "categorization_accuracy")
+        sample: The sample data to grade (dict with grader-specific keys)
+    
+    Returns:
+        GradeResponse with score (0.0-1.0)
+    """
+    grader_id = request.grader_id
+    
+    if grader_id not in GRADER_FUNCTIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown grader: {grader_id}. Available graders: {', '.join(GRADER_FUNCTIONS.keys())}"
+        )
+    
+    try:
+        grader_fn = GRADER_FUNCTIONS[grader_id]
+        score = grader_fn(request.sample)
+        
+        # Ensure score is in valid range
+        score = max(0.0, min(1.0, float(score)))
+        
+        return GradeResponse(
+            grader_id=grader_id,
+            score=score,
+            status="success",
+            message=f"Successfully graded sample with {grader_id}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error running grader {grader_id}: {str(e)}"
+        )
 
 
 @app.get("/")

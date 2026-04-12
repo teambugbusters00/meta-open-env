@@ -79,6 +79,13 @@ class SupportObservation(BaseModel):
     last_action_result: Optional[str] = None
 
 
+class Reward(BaseModel):
+    """Reward structure for OpenEnv compatibility"""
+    value: float = Field(..., ge=0.0, le=1.0, description="Reward in range [0.0, 1.0]")
+    components: Dict[str, float] = Field(default_factory=dict, description="Breakdown of reward components")
+    explanation: str = Field(default="", description="Why this reward was given")
+
+
 class SupportState(BaseModel):
     tickets: List[Ticket] = Field(default_factory=list)
     current_step: int = 0
