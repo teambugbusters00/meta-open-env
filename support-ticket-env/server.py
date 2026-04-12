@@ -7,7 +7,7 @@ import os
 import json
 import uvicorn
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Dict, List
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +24,7 @@ from env import (
     TASK_CONFIGS,
     TicketCategory,
     PriorityLevel,
+    ActionType,
 )
 
 
@@ -85,7 +86,7 @@ class TaskMetadata(BaseModel):
     difficulty: Optional[str] = None
     max_steps: Optional[int] = None
     success_threshold: Optional[float] = None
-    graders: list[GraderMetadata] = []
+    graders: List[GraderMetadata] = []
 
 
 class MetadataResponse(BaseModel):
@@ -93,17 +94,17 @@ class MetadataResponse(BaseModel):
     description: str
     version: str
     mode: str
-    tasks: list[TaskMetadata]
+    tasks: List[TaskMetadata]
 
 
 class GradeRequest(BaseModel):
     grader_id: str
-    sample: dict[str, Any]
+    sample: Dict[str, Any]
 
 
 class TaskGradeRequest(BaseModel):
     task_id: str
-    input: dict[str, Any]
+    input: Dict[str, Any]
     grader_id: Optional[str] = None  # Optional; uses first grader of task if not specified
 
 
@@ -240,7 +241,7 @@ async def reset_environment(request: ResetRequest = ResetRequest()):
         EnvResult with initial observation
     """
     try:
-        result = await env.reset(request.task_id if request.task_id else "categorize_ticket")
+        result = env.reset(request.task_id if request.task_id else "categorize_ticket")
         return JSONResponse(content=result, media_type="application/json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -258,7 +259,7 @@ async def step_environment(action: SupportAction):
         EnvResult with observation, reward, done flag, and info
     """
     try:
-        result = await env.step(action)
+        result = env.step(action)
         return JSONResponse(content=result, media_type="application/json")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -281,7 +282,7 @@ async def get_state():
 
 
 @app.post("/grade", response_model=GradeResponse)
-async def grade_sample(request: dict[str, Any]):
+async def grade_sample(request: Dict[str, Any]):
     """
     Grade a sample using a grader. Supports two formats:
     
@@ -371,7 +372,7 @@ async def grade_sample(request: dict[str, Any]):
         )
 
 
-def _convert_input_to_sample(task_id: str, input_data: dict[str, Any], grader_id: str) -> dict[str, Any]:
+def _convert_input_to_sample(task_id: str, input_data: Dict[str, Any], grader_id: str) -> Dict[str, Any]:
     """Convert task input format to grader sample format."""
     sample = {}
     
@@ -417,9 +418,13 @@ async def root():
         "description": "A real-world customer support ticket management environment for AI agents",
         "endpoints": {
             "health": "GET /health",
+            "metadata": "GET /metadata",
+            "tasks": "GET /tasks",
+            "graders": "GET /graders",
             "reset": "POST /reset",
             "step": "POST /step",
-            "state": "GET /state"
+            "state": "GET /state",
+            "grade": "POST /grade"
         },
         "tasks": get_task_metadata()
     }

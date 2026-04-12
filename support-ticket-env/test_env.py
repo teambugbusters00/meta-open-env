@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """Quick test of the environment."""
 
-import asyncio
 from env import SupportTicketEnv, SupportAction, ActionType, TicketCategory, PriorityLevel
 
-async def main():
+def main():
     """Test the env."""
     
     # Test 1: Reset
@@ -12,7 +11,7 @@ async def main():
     print("TEST 1: Reset Environment")
     print("=" * 60)
     env = SupportTicketEnv()
-    result = await env.reset('categorize_ticket')
+    result = env.reset('categorize_ticket')
     print(f"✓ Reset successful")
     print(f"  - Observation keys: {list(result['observation'].keys())}")
     print(f"  - Tickets: {len(result['observation']['tickets'])}")
@@ -35,7 +34,7 @@ async def main():
             priority=PriorityLevel.HIGH
         )
         
-        step_result = await env.step(action)
+        step_result = env.step(action)
         print(f"✓ Step successful")
         print(f"  - Reward: {step_result['reward']}")
         print(f"  - Done: {step_result['done']}")
@@ -58,4 +57,4 @@ async def main():
     print("\n✅ All tests passed!")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

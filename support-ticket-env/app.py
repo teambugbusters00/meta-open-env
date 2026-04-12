@@ -5,7 +5,6 @@ This file is used when deploying to HF Spaces with Gradio interface.
 
 import os
 import gradio as gr
-import asyncio
 import json
 from typing import Dict, Any
 
@@ -28,13 +27,8 @@ def reset_environment(task_id: str) -> str:
     """Reset the environment and return initial observation"""
     global env_state
     
-    async def _reset():
-        global env_state
-        result = await env.reset(task_id)
-        env_state = result
-        return result
-    
-    result = asyncio.run(_reset())
+    result = env.reset(task_id)
+    env_state = result
     observation = result.get("observation", {})
     
     # Format tickets for display
@@ -82,12 +76,8 @@ def take_action(action_json: str) -> str:
         if "action_type" not in action_dict:
             return "Error: 'action_type' is required in the action."
         
-        async def _step():
-            action = SupportAction(**action_dict)
-            result = await env.step(action)
-            return result
-        
-        result = asyncio.run(_step())
+        action = SupportAction(**action_dict)
+        result = env.step(action)
         observation = result.get("observation", {})
         reward = result.get("reward", 0.0)
         done = result.get("done", False)
