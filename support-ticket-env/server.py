@@ -21,6 +21,9 @@ from env import (
     SupportState,
     get_task_metadata,
     GRADER_FUNCTIONS,
+    TASK_CONFIGS,
+    TicketCategory,
+    PriorityLevel,
 )
 
 
@@ -98,11 +101,18 @@ class GradeRequest(BaseModel):
     sample: dict[str, Any]
 
 
+class TaskGradeRequest(BaseModel):
+    task_id: str
+    input: dict[str, Any]
+    grader_id: Optional[str] = None  # Optional; uses first grader of task if not specified
+
+
 class GradeResponse(BaseModel):
     grader_id: str
     score: float
     status: str = "success"
     message: str = ""
+    task_id: Optional[str] = None
 
 
 # ============================================================================
@@ -271,19 +281,69 @@ async def get_state():
 
 
 @app.post("/grade", response_model=GradeResponse)
-async def grade_sample(request: GradeRequest):
+async def grade_sample(request: dict[str, Any]):
     """
-    Grade a sample using the specified grader.
+    Grade a sample using a grader. Supports two formats:
     
-    Args:
-        grader_id: ID of the grader to use (e.g., "categorization_accuracy")
-        sample: The sample data to grade (dict with grader-specific keys)
+    Format 1 (Direct grader):
+        {"grader_id": "categorization_accuracy", "sample": {...}}
+    
+    Format 2 (Task-based):
+        {"task_id": "categorize_ticket", "input": {...}, "grader_id": "optional"}
     
     Returns:
         GradeResponse with score (0.0-1.0)
     """
-    grader_id = request.grader_id
+    # Determine which format is being used
+    if "grader_id" in request and "sample" in request:
+        # Format 1: Direct grader format
+        grader_id = request["grader_id"]
+        sample = request["sample"]
+        task_id = None
+    elif "task_id" in request and "input" in request:
+        # Format 2: Task-based format
+        task_id = request["task_id"]
+        input_data = request["input"]
+        
+        # Get task config to find graders
+        if task_id not in TASK_CONFIGS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown task: {task_id}. Available tasks: {', '.join(TASK_CONFIGS.keys())}"
+            )
+        
+        task_config = TASK_CONFIGS[task_id]
+        graders = task_config.get("graders", [])
+        
+        if not graders:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No graders available for task {task_id}"
+            )
+        
+        # Use specified grader or first available
+        requested_grader_id = request.get("grader_id")
+        if requested_grader_id:
+            grader_id = requested_grader_id
+            # Verify it's valid for this task
+            valid_grader_ids = [g["id"] for g in graders]
+            if grader_id not in valid_grader_ids:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Grader {grader_id} not available for task {task_id}. Valid graders: {valid_grader_ids}"
+                )
+        else:
+            grader_id = graders[0]["id"]
+        
+        # Convert task input to grader sample format
+        sample = _convert_input_to_sample(task_id, input_data, grader_id)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Request must include either (grader_id + sample) or (task_id + input)"
+        )
     
+    # Check grader exists
     if grader_id not in GRADER_FUNCTIONS:
         raise HTTPException(
             status_code=400,
@@ -292,7 +352,7 @@ async def grade_sample(request: GradeRequest):
     
     try:
         grader_fn = GRADER_FUNCTIONS[grader_id]
-        score = grader_fn(request.sample)
+        score = grader_fn(sample)
         
         # Ensure score is in valid range
         score = max(0.0, min(1.0, float(score)))
@@ -301,13 +361,51 @@ async def grade_sample(request: GradeRequest):
             grader_id=grader_id,
             score=score,
             status="success",
-            message=f"Successfully graded sample with {grader_id}"
+            message=f"Successfully graded sample with {grader_id}",
+            task_id=task_id
         )
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error running grader {grader_id}: {str(e)}"
         )
+
+
+def _convert_input_to_sample(task_id: str, input_data: dict[str, Any], grader_id: str) -> dict[str, Any]:
+    """Convert task input format to grader sample format."""
+    sample = {}
+    
+    if task_id == "categorize_ticket":
+        # For categorization task, extract ticket info and expected values
+        if "ticket_text" in input_data:
+            # This is raw input - use default expected values or parse
+            sample["agent_category"] = input_data.get("agent_category", TicketCategory.GENERAL)
+            sample["expected_category"] = input_data.get("expected_category", TicketCategory.GENERAL)
+            sample["agent_priority"] = input_data.get("agent_priority", PriorityLevel.MEDIUM)
+            sample["expected_priority"] = input_data.get("expected_priority", PriorityLevel.MEDIUM)
+        else:
+            # Structured input expected
+            sample.update(input_data)
+    
+    elif task_id == "prioritize_and_route":
+        # For prioritization task
+        sample["priority_scores"] = input_data.get("priority_scores", [])
+    
+    elif task_id == "full_workflow":
+        # For full workflow task
+        sample["categorization_score"] = input_data.get("categorization_score", 0.0)
+        sample["response_quality"] = input_data.get("response_quality", 0.0)
+        sample["escalation_score"] = input_data.get("escalation_score", 0.0)
+        sample["completion_ratio"] = input_data.get("completion_ratio", 0.0)
+    
+    elif task_id == "escalation_specialist":
+        # For escalation task
+        sample["expected_escalation"] = input_data.get("expected_escalation", False)
+        sample["agent_escalated"] = input_data.get("agent_escalated", False)
+        sample["expected_team"] = input_data.get("expected_team", "")
+        sample["agent_team"] = input_data.get("agent_team", "")
+    
+    return sample
 
 
 @app.get("/")

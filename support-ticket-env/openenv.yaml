@@ -24,6 +24,7 @@ tasks:
         name: Categorization Accuracy
         description: Scores 0.0-1.0 whether ticket categories and priorities were correctly assigned.
         type: deterministic
+        function_path: env.py:TicketGrader.grade_categorization
 
   - id: prioritize_and_route
     name: Prioritize and Route (Medium)
@@ -38,6 +39,7 @@ tasks:
         name: Queue Prioritization
         description: Evaluates whether tickets were prioritized correctly in the queue.
         type: deterministic
+        function_path: env.py:TicketGrader.grade_escalation
 
   - id: full_workflow
     name: Full Support Workflow (Hard)
@@ -52,10 +54,12 @@ tasks:
         name: Workflow Resolution Quality
         description: Grades the full workflow including categorization, prioritization, responses, and escalation.
         type: deterministic
+        function_path: env.py:TicketGrader.grade_response
       - id: response_professionalism
         name: Response Professionalism
         description: Evaluates the tone, politeness, and professional formatting of agent responses.
         type: deterministic
+        function_path: env.py:TicketGrader.grade_response
 
   - id: escalation_specialist
     name: Escalation Specialist (Medium)
@@ -70,6 +74,7 @@ tasks:
         name: Escalation Precision
         description: Measures accuracy of escalation decisions and appropriateness of team selection.
         type: deterministic
+        function_path: env.py:TicketGrader.grade_escalation
 
 
 environment:

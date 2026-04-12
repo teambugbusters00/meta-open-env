@@ -338,6 +338,14 @@ class GraderRegistry:
                 return base_score + 0.15
         
         return base_score
+    
+    @staticmethod
+    def grade_response_professionalism(sample: Dict[str, Any]) -> float:
+        """
+        Grader: Response Professionalism
+        Evaluates the tone, politeness, and professional formatting of agent responses.
+        """
+        return min(1.0, sample.get("response_length", 0) / 100.0)
 
 
 # Map grader IDs to callable functions
@@ -346,7 +354,7 @@ GRADER_FUNCTIONS = {
     "queue_prioritization": GraderRegistry.grade_queue_prioritization,
     "workflow_resolution_quality": GraderRegistry.grade_workflow_resolution_quality,
     "escalation_precision": GraderRegistry.grade_escalation_precision,
-    "response_professionalism": lambda sample: min(1.0, sample.get("response_length", 0) / 100.0),
+    "response_professionalism": GraderRegistry.grade_response_professionalism,
 }
 
 
