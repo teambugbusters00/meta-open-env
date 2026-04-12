@@ -52,6 +52,10 @@ tasks:
         name: Workflow Resolution Quality
         description: Grades the full workflow including categorization, prioritization, responses, and escalation.
         type: deterministic
+      - id: response_professionalism
+        name: Response Professionalism
+        description: Evaluates the tone, politeness, and professional formatting of agent responses.
+        type: deterministic
 
   - id: escalation_specialist
     name: Escalation Specialist (Medium)
