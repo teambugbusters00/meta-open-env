@@ -19,7 +19,10 @@ import httpx
 # Required environment variables
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
 
 # Environment configuration
 ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
@@ -235,7 +238,7 @@ def get_llm_action(client: OpenAI, observation: Dict[str, Any]) -> Optional[Dict
 async def main() -> None:
     """Main inference loop"""
 
-    llm_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    llm_client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     env_client = EnvironmentClient(ENV_URL)
 
     if not await env_client.health_check():
