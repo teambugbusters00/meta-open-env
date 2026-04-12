@@ -1,4 +1,15 @@
 
+---
+title: Support Ticket Triage
+emoji: 🎫
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_file: support-ticket-env/server.py
+app_port: 8000
+pinned: false
+---
+
 # Support Ticket Triage Submission
 
 This repository is intentionally structured as a single deployable environment inside `support-ticket-env/`.
