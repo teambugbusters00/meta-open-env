@@ -252,21 +252,28 @@ class GraderRegistry:
     """Registry of callable graders that can be invoked by validators"""
     
     @staticmethod
+    def _clamp_score(score: float) -> float:
+        """Ensure score is strictly within (0, 1) range"""
+        return max(0.01, min(0.99, float(score)))
+    
+    @staticmethod
     def grade_categorization_accuracy(sample: Dict[str, Any]) -> float:
         """
         Grader: Categorization Accuracy
-        Scores 0.0-1.0 whether ticket categories and priorities were correctly assigned.
+        Scores strictly within (0, 1) whether ticket categories and priorities were correctly assigned.
         """
         if "expected_category" not in sample or "agent_category" not in sample:
-            return 0.0
+            return 0.05  # Return minimum valid score instead of 0.0
         
         grader = TicketGrader()
-        return grader.grade_categorization(
+        raw_score = grader.grade_categorization(
             sample.get("agent_category"),
             sample.get("expected_category"),
             sample.get("agent_priority", PriorityLevel.MEDIUM),
             sample.get("expected_priority", PriorityLevel.MEDIUM)
         )
+        # Normalize to (0, 1) range: map [0, 1] to [0.05, 0.95]
+        return 0.05 + (raw_score * 0.9)
     
     @staticmethod
     def grade_queue_prioritization(sample: Dict[str, Any]) -> float:
@@ -275,15 +282,17 @@ class GraderRegistry:
         Evaluates whether multiple tickets were prioritized correctly relative to each other.
         """
         if "priority_scores" not in sample:
-            return 0.0
+            return 0.05
         
         scores = sample.get("priority_scores", [])
         if not scores:
-            return 0.0
+            return 0.05
         
         # Average of all prioritization decisions
         avg_score = sum(scores) / len(scores)
-        return max(0.0, min(1.0, avg_score))
+        clamped = max(0.0, min(1.0, avg_score))
+        # Normalize to (0, 1) range: map [0, 1] to [0.05, 0.95]
+        return 0.05 + (clamped * 0.9)
     
     @staticmethod
     def grade_workflow_resolution_quality(sample: Dict[str, Any]) -> float:
@@ -310,9 +319,11 @@ class GraderRegistry:
             components.append(sample["completion_ratio"] * 0.2)
         
         if not components:
-            return 0.0
+            return 0.05  # Return minimum valid score instead of 0.0
         
-        return max(0.0, min(1.0, sum(components)))
+        raw_score = max(0.0, min(1.0, sum(components)))
+        # Normalize to (0, 1) range: map [0, 1] to [0.05, 0.95]
+        return 0.05 + (raw_score * 0.9)
     
     @staticmethod
     def grade_escalation_precision(sample: Dict[str, Any]) -> float:
@@ -333,11 +344,14 @@ class GraderRegistry:
             expected_team = sample.get("expected_team", "")
             agent_team = sample.get("agent_team", "")
             if expected_team == agent_team:
-                return 1.0
+                raw_score = 0.95  # Near maximum but not 1.0
             else:
-                return base_score + 0.15
+                raw_score = base_score + 0.15
+        else:
+            raw_score = base_score
         
-        return base_score
+        # Normalize to (0, 1) range
+        return GraderRegistry._clamp_score(raw_score)
     
     @staticmethod
     def grade_response_professionalism(sample: Dict[str, Any]) -> float:
@@ -345,7 +359,10 @@ class GraderRegistry:
         Grader: Response Professionalism
         Evaluates the tone, politeness, and professional formatting of agent responses.
         """
-        return min(1.0, sample.get("response_length", 0) / 100.0)
+        response_length = sample.get("response_length", 0)
+        raw_score = min(1.0, response_length / 100.0)
+        # Normalize to (0, 1) range: map [0, 1] to [0.05, 0.95]
+        return 0.05 + (raw_score * 0.9)
 
 
 # Map grader IDs to callable functions
@@ -400,12 +417,14 @@ class TicketGrader:
             else:
                 priority_score = 0.05
         
-        return category_score + priority_score
+        # Ensure result is within (0, 1) range: map [0, 1] to [0.1, 0.9]
+        raw_score = category_score + priority_score
+        return max(0.1, min(0.9, raw_score))
     
     @staticmethod
     def grade_response(response_text: str, ticket_category: TicketCategory) -> float:
         if not response_text or len(response_text.strip()) < 10:
-            return 0.0
+            return 0.05  # Return minimum valid score instead of 0.0
         
         response_lower = response_text.lower()
         
@@ -432,9 +451,11 @@ class TicketGrader:
         elif 10 <= word_count < 20 or 150 < word_count <= 200:
             length_score = 0.1
         else:
-            length_score = 0.0
+            length_score = 0.05  # Return minimum valid score instead of 0.0
         
-        return keyword_score + prof_score + length_score
+        # Ensure result is within (0, 1) range: map [0, 1] to [0.05, 0.95]
+        raw_score = keyword_score + prof_score + length_score
+        return 0.05 + (min(raw_score, 1.0) * 0.9)
     
     @staticmethod
     def grade_escalation(ticket_priority: PriorityLevel, escalation_reason: str, target_team: str) -> float:
@@ -452,11 +473,12 @@ class TicketGrader:
                 score = 0.2
         else:
             if target_team in ["senior_support", "engineering"]:
-                score = 0.1
+                score = 0.15  # Changed from 0.1 to avoid edge cases
             else:
                 score = 0.4
         
-        return score
+        # Ensure result is within (0, 1) range: map [0, 1] to [0.1, 0.9]
+        return max(0.1, min(0.9, score))
 
 
 # ============================================================================
