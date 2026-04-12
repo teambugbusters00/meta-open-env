@@ -118,6 +118,27 @@ async def get_metadata():
     )
 
 
+@app.get("/tasks")
+async def get_tasks():
+    """Return list of tasks with grader information."""
+    tasks_list = get_task_metadata()
+    return {
+        "tasks": [
+            {
+                "id": task["id"],
+                "name": task["name"],
+                "description": task["description"],
+                "difficulty": task.get("difficulty"),
+                "max_steps": task.get("max_steps"),
+                "success_threshold": task.get("success_threshold"),
+                "has_grader": True,
+                "graders": task.get("graders", [])
+            }
+            for task in tasks_list
+        ]
+    }
+
+
 @app.get("/schema")
 async def get_schema():
     """Return action/observation/state schemas required by validators."""
