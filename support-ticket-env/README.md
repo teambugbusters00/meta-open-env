@@ -5,7 +5,7 @@ colorFrom: blue
 colorTo: green
 sdk: docker
 sdk_version: "3.10"
-app_file: app.py
+app_file: server.py
 app_port: 8000
 pinned: false
 ---
@@ -26,7 +26,7 @@ This environment tests an AI agent's ability to handle realistic customer suppor
 
 ## 📋 Tasks
 
-The environment includes three tasks with increasing difficulty:
+The environment includes four tasks with increasing difficulty:
 
 ### 1. Ticket Categorization (Easy)
 - **Task ID**: `categorize_ticket`
@@ -40,11 +40,17 @@ The environment includes three tasks with increasing difficulty:
 - **Description**: Handle multiple tickets by prioritizing them correctly and routing to appropriate teams
 - **Skills Tested**: Multi-task management, prioritization, routing decisions
 
-### 3. Full Support Workflow (Hard)
+### 3. Escalation Specialist (Medium)
+- **Task ID**: `escalation_specialist`
+- **Max Steps**: 8
+- **Description**: Evaluate high-priority tickets and route them to the correct specialized teams (Engineering, Billing, etc.)
+- **Skills Tested**: Technical judgment, escalation logic, team routing
+
+### 4. Full Support Workflow (Hard)
 - **Task ID**: `full_workflow`
 - **Max Steps**: 15
 - **Description**: Complete end-to-end support workflow including categorization, prioritization, drafting responses, and escalation when necessary
-- **Skills Tested**: Complete customer support workflow, professional communication, judgment
+- **Skills Tested**: End-to-end workflow management, professional communication, complex decision making
 
 ## 🏗️ Architecture
 
@@ -146,7 +152,7 @@ pip install -r requirements.txt
 
 3. **Run the server**:
 ```bash
-python -m server.app
+python server.py
 ```
 
 The server will start on `http://localhost:8000`

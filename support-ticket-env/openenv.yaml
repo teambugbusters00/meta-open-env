@@ -49,6 +49,22 @@ tasks:
       - id: workflow_resolution_quality
         name: Workflow Resolution Quality
         description: Grades the end-to-end workflow, including categorization, prioritization, response quality, escalation, and completion.
+      - id: response_professionalism
+        name: Response Professionalism
+        description: Specific evaluation of the tone, politeness, and professional formatting of agent responses.
+
+  - id: escalation_specialist
+    name: Escalation Specialist (Medium)
+    description: |
+      Evaluate and route high-priority tickets to the correct specialized teams based on technical depth.
+      Master the art of knowing when and how to escalate tickets for maximum effectiveness.
+    difficulty: medium
+    max_steps: 8
+    success_threshold: 0.65
+    graders:
+      - id: escalation_precision
+        name: Escalation Precision
+        description: Measures the accuracy of escalation decisions and the appropriateness of the target team selection.
 
 environment:
   type: text

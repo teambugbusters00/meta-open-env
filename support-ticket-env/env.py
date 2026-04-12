@@ -200,6 +200,26 @@ TASK_CONFIGS = {
                 "id": "workflow_resolution_quality",
                 "name": "Workflow Resolution Quality",
                 "description": "Grades the full workflow including categorization, prioritization, response quality, escalation judgment, and ticket completion.",
+            },
+            {
+                "id": "response_professionalism",
+                "name": "Response Professionalism",
+                "description": "Specific evaluation of the tone, politeness, and professional formatting of agent responses.",
+            }
+        ],
+    },
+    "escalation_specialist": {
+        "name": "Escalation Specialist (Medium)",
+        "description": "Evaluate and route high-priority tickets to the correct specialized teams based on technical depth.",
+        "difficulty": "medium",
+        "max_steps": 8,
+        "ticket_count": 4,
+        "success_threshold": 0.65,
+        "graders": [
+            {
+                "id": "escalation_precision",
+                "name": "Escalation Precision",
+                "description": "Measures the accuracy of escalation decisions and the appropriateness of the target team selection.",
             }
         ],
     },
@@ -453,6 +473,8 @@ class SupportTicketEnv:
         
         if task_id == "categorize_ticket":
             template_pool = TICKET_TEMPLATES["technical"][:2] + TICKET_TEMPLATES["billing"][:1]
+        elif task_id == "escalation_specialist":
+            template_pool = TICKET_TEMPLATES["technical"] + TICKET_TEMPLATES["account"]
         else:
             template_pool = (TICKET_TEMPLATES["technical"] + 
                            TICKET_TEMPLATES["billing"] + 
@@ -485,7 +507,7 @@ class SupportTicketEnv:
         
         # Determine available actions based on task
         available_actions = ["categorize", "prioritize"]
-        if self._state.task_id in ["prioritize_and_route", "full_workflow"]:
+        if self._state.task_id in ["prioritize_and_route", "full_workflow", "escalation_specialist"]:
             available_actions.extend(["respond", "escalate", "request_info", "close"])
         
         return SupportObservation(
