@@ -19,6 +19,9 @@ tasks:
     difficulty: easy
     max_steps: 5
     success_threshold: 0.7
+    grader:
+      endpoint: /grader
+      task_id: categorize_ticket
 
   - id: prioritize_and_route
     name: Prioritize and Route (Medium)
@@ -28,6 +31,9 @@ tasks:
     difficulty: medium
     max_steps: 10
     success_threshold: 0.6
+    grader:
+      endpoint: /grader
+      task_id: prioritize_and_route
 
   - id: full_workflow
     name: Full Support Workflow (Hard)
@@ -37,6 +43,9 @@ tasks:
     difficulty: hard
     max_steps: 15
     success_threshold: 0.5
+    grader:
+      endpoint: /grader
+      task_id: full_workflow
 
 environment:
   type: text
