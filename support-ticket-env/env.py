@@ -664,14 +664,27 @@ class SupportTicketEnv:
         if not ticket:
             return 0.0, "Ticket not found"
         
-        # Can only close if ticket has been handled
-        if ticket.status not in [TicketStatus.RESOLVED, TicketStatus.WAITING_CUSTOMER]:
+        # Can transition from various states to closure
+        if ticket.status not in [TicketStatus.NEW, TicketStatus.IN_PROGRESS, TicketStatus.WAITING_CUSTOMER, TicketStatus.RESOLVED]:
             return 0.0, "Ticket cannot be closed in current state"
         
-        ticket.status = TicketStatus.CLOSED
+        # First mark as resolved if it has been handled
+        if ticket.status == TicketStatus.WAITING_CUSTOMER and ticket.responses:
+            ticket.status = TicketStatus.RESOLVED
+            # Bonus for resolving through proper workflow
+            return 0.6, f"Resolved ticket {ticket.id}"
         
-        # Bonus for completing ticket lifecycle
-        reward = 0.3 if ticket.responses else 0.1
+        # Then close it
+        if ticket.status in [TicketStatus.RESOLVED, TicketStatus.WAITING_CUSTOMER]:
+            ticket.status = TicketStatus.CLOSED
+            reward = 0.4 if ticket.responses else 0.1
+        elif ticket.status in [TicketStatus.NEW, TicketStatus.IN_PROGRESS]:
+            # Can close unhandled tickets but with penalty
+            ticket.status = TicketStatus.CLOSED
+            reward = 0.0
+        else:
+            ticket.status = TicketStatus.CLOSED
+            reward = 0.1
         
         result = f"Closed ticket {ticket.id}"
         return reward, result

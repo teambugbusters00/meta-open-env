@@ -217,10 +217,22 @@ def get_llm_action(client: OpenAI, observation: Dict[str, Any]) -> Optional[Dict
                 content = content[:-3]
             content = content.strip()
 
-            action = json.loads(content)
-            return action
-        except json.JSONDecodeError:
-            print(f"[DEBUG] Failed to parse LLM response as JSON: {content}", flush=True)
+            action_dict = json.loads(content)
+            
+            # Validate action has required fields
+            if "action_type" not in action_dict:
+                print(f"[DEBUG] Missing action_type in LLM response", flush=True)
+                return None
+            
+            # Ensure ticket_id is present for most actions
+            tickets = observation.get("tickets", [])
+            if not action_dict.get("ticket_id") and tickets and action_dict.get("action_type") != "unknown":
+                action_dict["ticket_id"] = tickets[0].get("id", "")
+            
+            return action_dict
+            
+        except json.JSONDecodeError as e:
+            print(f"[DEBUG] Failed to parse LLM response as JSON: {content[:100]}", flush=True)
             return None
 
     except Exception as e:
@@ -247,49 +259,92 @@ async def main() -> None:
     steps_taken = 0
     score = 0.0
     success = False
+    error_occurred = False
 
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        result = await env_client.reset(TASK_NAME)
+        # Reset environment
+        try:
+            result = await env_client.reset(TASK_NAME)
+        except Exception as e:
+            print(f"[ERROR] Failed to reset environment: {e}", flush=True)
+            log_end(success=False, steps=0, score=0.0, rewards=rewards)
+            return
+        
         observation = result.get("observation", {})
+        tickets = observation.get("tickets", [])
+        
+        if not tickets:
+            print(f"[ERROR] No tickets received from environment", flush=True)
+            log_end(success=False, steps=0, score=0.0, rewards=rewards)
+            return
 
         for step in range(1, MAX_STEPS + 1):
             if result.get("done", False):
+                print(f"[DEBUG] Episode finished at step {step}", flush=True)
                 break
 
+            # Get action from LLM
             action = get_llm_action(llm_client, observation)
 
+            # Fallback action if LLM fails
             if action is None:
+                tickets_list = observation.get("tickets", [])
+                default_ticket_id = tickets_list[0].get("id", "") if tickets_list else ""
                 action = {
                     "action_type": "categorize",
-                    "ticket_id": observation.get("tickets", [{}])[0].get("id", ""),
+                    "ticket_id": default_ticket_id,
                     "category": "general",
                     "priority": "medium"
                 }
+                print(f"[DEBUG] Using fallback action due to LLM failure", flush=True)
 
-            result = await env_client.step(action)
+            # Execute action in environment
+            try:
+                result = await env_client.step(action)
+            except Exception as e:
+                print(f"[ERROR] Failed to execute step: {e}", flush=True)
+                error_occurred = True
+                break
+
             observation = result.get("observation", {})
             reward = result.get("reward", 0.0)
             done = result.get("done", False)
-            error = None
+            error = result.get("info", {}).get("error") if isinstance(result.get("info"), dict) else None
+
+            # Validate reward is in range
+            if not isinstance(reward, (int, float)) or reward < -1.0 or reward > 1.0:
+                print(f"[WARNING] Invalid reward value: {reward}, clamping to [0.0, 1.0]", flush=True)
+                reward = max(0.0, min(1.0, float(reward) if isinstance(reward, (int, float)) else 0.0))
 
             rewards.append(reward)
             steps_taken = step
 
-            action_str = f"{action.get('action_type', 'unknown')}({action.get('ticket_id', '')})"
+            action_str = f"{action.get('action_type', 'unknown')}({action.get('ticket_id', '')[:8]})"
             log_step(step=step, action=action_str, reward=reward, done=done, error=error)
 
             if done:
                 break
 
-        state = await env_client.get_state()
-        score = state.get("score", 0.0)
-        score = min(max(score, 0.0), 1.0)
-        success = score >= SUCCESS_SCORE_THRESHOLD
+        # Get final state
+        try:
+            state = await env_client.get_state()
+            score = state.get("score", 0.0)
+        except Exception as e:
+            print(f"[ERROR] Failed to get final state: {e}", flush=True)
+            if rewards:
+                score = sum(rewards) / len(rewards)
+            error_occurred = True
+
+        # Validate score
+        score = min(max(float(score), 0.0), 1.0)
+        success = score >= SUCCESS_SCORE_THRESHOLD and not error_occurred
 
     except Exception as e:
         print(f"[ERROR] Inference failed: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         success = False
 
     finally:
@@ -298,6 +353,7 @@ async def main() -> None:
         except Exception:
             pass
 
+        # Ensure we always log the end
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 
